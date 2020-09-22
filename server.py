@@ -17,16 +17,31 @@ def connectionLoop(sock):
       data = str(data)
       if addr in clients:
          if 'heartbeat' in data:
+            # If the server receives a heartbeat message, it updates the corresponding client with the last heartbeat time. 
             clients[addr]['lastBeat'] = datetime.now()
       else:
-         if 'connect' in data:
+         if 'connect' in data: # the server expects a packet with "connect" in order for a client to connect
+            # When a new client connects, the server adds the new client to a list of clients it has.
             clients[addr] = {}
             clients[addr]['lastBeat'] = datetime.now()
             clients[addr]['color'] = 0
             message = {"cmd": 0,"player":{"id":str(addr)}}
             m = json.dumps(message)
+            
             for c in clients:
-               sock.sendto(bytes(m,'utf8'), (c[0],c[1]))
+               sock.sendto(bytes(m,'utf8'), (c[0],c[1])) # When a new client connects, 
+               # the server sends a message to all currently connected clients
+
+               # since we are already iterating through clients, store id of each
+               newClientMsg = {"currently connected client":str(c[0])}
+               ncm = json.dumps(newClientMsg)
+               # send id of each client after storing it
+               sock.sendto(bytes(ncm,'utf8'), (addr[0],addr[1]))
+
+
+
+
+               
 
 def cleanClients():
    while True:
@@ -36,6 +51,13 @@ def cleanClients():
             clients_lock.acquire()
             del clients[c]
             clients_lock.release()
+            # If a client is dropped, the server sends a message to all clients currently connected 
+            # to inform them of the dropped player. 
+            for cc in clients: # the client has been dropped, now iterate through all connected clients
+               droppedClientMsg = {"client dropped":str(c[0])} # get the id of the client that dropped 
+               dcp = json.dumps(newClientMsg) # store in json
+               sock.sendto(bytes(dcp,'utf8'), (cc[0],cc[1])) # send json to each client
+               print('Sent message to current client informing of dropped client')
       time.sleep(1)
 
 def gameLoop(sock):
