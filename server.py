@@ -43,7 +43,7 @@ def connectionLoop(sock):
 
                
 
-def cleanClients():
+def cleanClients(sock):
    while True:
       for c in list(clients.keys()):
          if (datetime.now() - clients[c]['lastBeat']).total_seconds() > 5:
@@ -54,8 +54,8 @@ def cleanClients():
             # If a client is dropped, the server sends a message to all clients currently connected 
             # to inform them of the dropped player. 
             for cc in clients: # the client has been dropped, now iterate through all connected clients
-               droppedClientMsg = {"client dropped":str(c[0])} # get the id of the client that dropped 
-               dcp = json.dumps(newClientMsg) # store in json
+               droppedClientMsg = {"cmd": 2, "id":str(c)} # get the id of the client that dropped 
+               dcp = json.dumps(droppedClientMsg) # store in json
                sock.sendto(bytes(dcp,'utf8'), (cc[0],cc[1])) # send json to each client
                print('Sent message to current client informing of dropped client')
       time.sleep(1)
@@ -84,7 +84,7 @@ def main():
    s.bind(('', port))
    start_new_thread(gameLoop, (s,))
    start_new_thread(connectionLoop, (s,))
-   start_new_thread(cleanClients,())
+   start_new_thread(cleanClients,(s,))
    while True:
       time.sleep(1)
 
