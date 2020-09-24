@@ -15,7 +15,7 @@ def connectionLoop(sock):
    while True:
       data, addr = sock.recvfrom(1024)
       data = str(data)
-      AlreadyHerePlayerList = {"cmd": 3, "players": []}
+      AlreadyHerePlayerList = {"cmd": 3, "players": []} # A list of players that are already online when a new client joins
       if addr in clients:
          if 'heartbeat' in data:
             # If the server receives a heartbeat message, it updates the corresponding client with the last heartbeat time. 
