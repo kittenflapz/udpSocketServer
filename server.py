@@ -15,6 +15,7 @@ def connectionLoop(sock):
    while True:
       data, addr = sock.recvfrom(1024)
       data = str(data)
+      AlreadyHerePlayerList = {"cmd": 3, "players": []}
       if addr in clients:
          if 'heartbeat' in data:
             # If the server receives a heartbeat message, it updates the corresponding client with the last heartbeat time. 
@@ -31,12 +32,14 @@ def connectionLoop(sock):
             for c in clients:
                sock.sendto(bytes(m,'utf8'), (c[0],c[1])) # When a new client connects, 
                # the server sends a message to all currently connected clients
+               player = {}
+               player['id'] = str(c)
+               AlreadyHerePlayerList['players'].append(player)
 
-               # since we are already iterating through clients, store id of each
-               newClientMsg = {"currently connected client":str(c[0])}
-               ncm = json.dumps(newClientMsg)
-               # send id of each client after storing it
-               sock.sendto(bytes(ncm,'utf8'), (addr[0],addr[1]))
+            # since we are already iterating through clients, store id of each
+            ncm = json.dumps(AlreadyHerePlayerList)
+            # send id of each client TO NEW CLIENT after storing it
+            sock.sendto(bytes(ncm,'utf8'), (addr[0],addr[1]))
 
 
 
