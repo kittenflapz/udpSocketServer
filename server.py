@@ -14,18 +14,24 @@ clients = {}
 def connectionLoop(sock):
    while True:
       data, addr = sock.recvfrom(1024)
-      data = str(data)
+      dataStr = str(data)
       AlreadyHerePlayerList = {"cmd": 3, "players": []} # A list of players that are already online when a new client joins
       if addr in clients:
-         if 'heartbeat' in data:
+         if 'heartbeat' in dataStr:
             # If the server receives a heartbeat message, it updates the corresponding client with the last heartbeat time. 
             clients[addr]['lastBeat'] = datetime.now()
+         else:
+            dataJson = json.loads(data)
+            clients[addr]['position'] = {"x": dataJson['position']['x'], "y": dataJson['position']['y'], "z": dataJson['position']['z']}
+            #print(clients[addr]['position'])
+            
+
       else:
-         if 'connect' in data: # the server expects a packet with "connect" in order for a client to connect
+         if 'connect' in dataStr: # the server expects a packet with "connect" in order for a client to connect
             # When a new client connects, the server adds the new client to a list of clients it has.
             clients[addr] = {}
             clients[addr]['lastBeat'] = datetime.now()
-            clients[addr]['color'] = 0
+            clients[addr]['position'] = 0
             message = {"cmd": 0,"player":{"id":str(addr)}}
             m = json.dumps(message)
             
@@ -43,14 +49,11 @@ def connectionLoop(sock):
 
 
 
-
-               
-
 def cleanClients(sock):
    while True:
       for c in list(clients.keys()):
          if (datetime.now() - clients[c]['lastBeat']).total_seconds() > 5:
-            print('Dropped Client: ', c)
+            #print('Dropped Client: ', c)
             clients_lock.acquire()
             del clients[c]
             clients_lock.release()
@@ -60,26 +63,27 @@ def cleanClients(sock):
                droppedClientMsg = {"cmd": 2, "id":str(c)} # get the id of the client that dropped 
                dcp = json.dumps(droppedClientMsg) # store in json
                sock.sendto(bytes(dcp,'utf8'), (cc[0],cc[1])) # send json to each client
-               print('Sent message to current client informing of dropped client')
+               #print('Sent message to current client informing of dropped client')
       time.sleep(1)
 
 def gameLoop(sock):
    while True:
       GameState = {"cmd": 1, "players": []}
       clients_lock.acquire()
-      print (clients)
+      #print (clients)
       for c in clients:
          player = {}
-         clients[c]['color'] = {"R": random.random(), "G": random.random(), "B": random.random()}
+         #clients[c]['position'] = {"x": clients[c][position], "y": random.random(), "z": random.random()}
          player['id'] = str(c)
-         player['color'] = clients[c]['color']
+         player['position'] = clients[c]['position']
+         print(player)
          GameState['players'].append(player)
       s=json.dumps(GameState)
-      print(s)
+      #print(s)
       for c in clients:
          sock.sendto(bytes(s,'utf8'), (c[0],c[1]))
       clients_lock.release()
-      time.sleep(1)
+      time.sleep(.16)
 
 def main():
    port = 12345
